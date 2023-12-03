@@ -50,7 +50,7 @@ async def on_edited_exercise_selected(callback: CallbackQuery, widget: Any,
     await delete_exercise(tg_id=manager.event.from_user.id, exercise_id=selected_item)
 
 
-HEADER = Const('###')
+HEADER = Const('######')
 # region main window + add window
 main_window = Window(
     HEADER,
