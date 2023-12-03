@@ -20,6 +20,7 @@ from dialogs import states
 
 from dialogs.main import main_dialog
 from dialogs.exercises import exercises_dialog
+from dialogs.trains import trains_dialog
 
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,8 @@ async def main():
     dialog_router = Router()
     dialog_router.include_routers(
         main_dialog,
-        exercises_dialog
+        exercises_dialog,
+        trains_dialog
     )
 
     dp.message.register(start, F.text == '/start')

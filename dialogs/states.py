@@ -15,6 +15,6 @@ class Exercises(StatesGroup):
 
 class Trains(StatesGroup):
     MAIN = State()
-    ADD = State()
-    EDIT = State()
     LIST = State()
+    SETS = State()
+    RECORD = State()

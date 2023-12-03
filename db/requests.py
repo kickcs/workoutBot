@@ -37,3 +37,29 @@ async def list_exercises(tg_id: int):
         return exercises
 
 
+async def get_exercise_types(tg_id: int):
+    async with sessionmaker() as session:
+        result = await session.execute(select(Exercises.type).distinct().where(Exercises.user_id == tg_id))
+        exercise_types = result.scalars().all()
+        return exercise_types
+
+
+async def get_exercises_by_type(tg_id: int, exercise_type: str):
+    async with sessionmaker() as session:
+        result = await session.execute(
+            select(Exercises)
+            .where(Exercises.user_id == tg_id, Exercises.type == exercise_type)
+        )
+        exercises = result.scalars().all()
+        return exercises
+
+
+async def get_exercise_name(tg_id: int, exercise_id: int):
+    async with sessionmaker() as session:
+        result = await session.execute(
+            select(Exercises.name)
+            .where(Exercises.user_id == tg_id, Exercises.id == int(exercise_id))
+        )
+        exercise_name = result.scalar_one_or_none()
+        return exercise_name
+
