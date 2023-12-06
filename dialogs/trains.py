@@ -1,10 +1,10 @@
 from aiogram_dialog import Dialog, Window, DialogManager
-from aiogram_dialog.widgets.kbd import (Back, SwitchTo, Select, Start, Column, Button)
-from aiogram_dialog.widgets.text import Const, Format
+from aiogram_dialog.widgets.kbd import (Back, Select, Start, Column, Button)
+from aiogram_dialog.widgets.text import Const, Format, Case
 from aiogram_dialog.widgets.input import MessageInput
 
-
 from aiogram.types import Message, CallbackQuery, ContentType
+from aiogram import F
 from typing import Any
 from datetime import datetime
 import operator
@@ -14,10 +14,24 @@ from db.requests import (get_exercise_types, get_exercises_by_type, get_exercise
                          create_train)
 
 
-async def generate_approaches(number: int):
+async def generate_approaches(number: int, exercises: dict | None, exercise_id: str):
+    """Generates list of approaches"""
     approaches = []
-    for i in range(1, number + 1):
-        approaches.append((f'Подход {i}', i))
+
+    if exercises is None:
+        for i in range(1, number + 1):
+            approaches.append((f'Подход {i}', i, None, None, False))
+    else:
+        exercise_sets = exercises.get(exercise_id, [])
+
+        for i in range(1, number + 1):
+            found_set = next((set_info for set_info in exercise_sets if int(set_info['set_number']) == i), None)
+
+            if found_set:
+                approaches.append((f'Подход {i}', i, found_set['reps'], found_set['weight'], True))
+            else:
+                approaches.append((f'Подход {i}', i, None, None, False))
+
     return approaches
 
 
@@ -35,7 +49,7 @@ async def on_exercise_type_selected(callback: CallbackQuery, widget: Any,
 async def exercise_by_type_getter(dialog_manager: DialogManager, **_kwargs):
     exercises = await get_exercises_by_type(tg_id=dialog_manager.event.from_user.id,
                                             exercise_type=dialog_manager.dialog_data['exercise_type'])
-    return {'exercises': exercises}
+    return {'exercises': exercises, }
 
 
 async def on_exercise_selected(callback: CallbackQuery, widget: Any,
@@ -45,13 +59,16 @@ async def on_exercise_selected(callback: CallbackQuery, widget: Any,
 
 
 async def exercise_set_getter(dialog_manager: DialogManager, **_kwargs):
+    exercise_id = dialog_manager.dialog_data['exercise_id']
     exercise_name = await get_exercise_name(tg_id=dialog_manager.event.from_user.id,
-                                            exercise_id=dialog_manager.dialog_data['exercise_id'])
+                                            exercise_id=exercise_id)
     exercise_sets = dialog_manager.current_context().dialog_data.get('exercise_sets', {})
 
     sets_count = exercise_sets.get(dialog_manager.dialog_data['exercise_id'], 0)
-    sets = await generate_approaches(sets_count)
-    return {'exercise_name': exercise_name, 'sets': sets, 'show': True}
+    sets = await generate_approaches(sets_count, dialog_manager.dialog_data.get('exercises'),
+                                     exercise_id)
+    print(dialog_manager.dialog_data)
+    return {'exercise_name': exercise_name, 'sets': sets}
 
 
 async def on_button_selected(callback: CallbackQuery, widget: Button,
@@ -137,12 +154,12 @@ async def count_weight_set(message: Message, message_input: MessageInput,
 
 async def other_type_handler(message: Message, message_input: MessageInput,
                              manager: DialogManager):
-    await message.answer('Мне кажется ваше сообщение не похоже на текст =)')
+    await message.answer('Вы ввели некорректное значение. Пожалуйста, попробуйте ещё раз\n'
+                         'Ваш ответ должен состоять только из целых чисел!')
 
 
 async def end_trains(callback: CallbackQuery, widget: Button,
                      manager: DialogManager):
-
     data = manager.dialog_data['exercises']
     for exercise_id, sets in data.items():
         for set_info in sets:
@@ -194,11 +211,10 @@ window_exercise_select = Window(
 window_exercise_set_select = Window(
     Format('Текущее упражнение:\n{exercise_name}'),
     Column(Select(
-        Format("{item[0]}"),
+        Format("{item[0]} | {item[2]}x{item[3]} кг"),
         id='s_sets',
         item_id_getter=operator.itemgetter(1),
         items='sets',
-        when='show',
         on_click=on_exercise_sets_selected
     )),
     Button(Const('Добавить подход'), id='add_set', on_click=on_button_selected),
@@ -211,7 +227,7 @@ window_exercise_set_select = Window(
 window_exercise_set_reps_input = Window(
     Format('Текущее упражнение:\n{exercise_name}\n'),
     Const('Введите количество сделанных повторений:'),
-    MessageInput(count_reps_set, content_types=[ContentType.TEXT]),
+    MessageInput(count_reps_set, content_types=[ContentType.TEXT], filter=F.text.isdigit()),
     MessageInput(other_type_handler),
     Back(text=Const('Назад')),
     getter=exercise_name_getter,
@@ -221,7 +237,7 @@ window_exercise_set_reps_input = Window(
 window_exercise_set_weight_input = Window(
     Format('Текущее упражнение:\n{exercise_name}\n'),
     Const('Введите вес, который вы использовали в данном подходе:'),
-    MessageInput(count_weight_set, content_types=[ContentType.TEXT]),
+    MessageInput(count_weight_set, content_types=[ContentType.TEXT], filter=F.text.isdigit()),
     MessageInput(other_type_handler),
     Back(text=Const('Назад')),
     getter=exercise_name_getter,

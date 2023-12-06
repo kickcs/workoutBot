@@ -9,7 +9,11 @@ main_dialog = Dialog(
         Const('Test'),
         Const('Для получения подробной информации \n'
               'о работе с ботом нажмите "Информация"'),
-        Button(text=Const('Информация ### IN PROGRESS'), id='info'),
+        Start(
+            text=Const('Информация'),
+            id='info',
+            state=states.Info.MAIN
+        ),
         Start(
             text=Const('Упражнения'),
             id='exercises',

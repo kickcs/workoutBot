@@ -23,7 +23,8 @@ async def name_handler(message: Message, message_input: MessageInput,
 
 async def other_type_handler(message: Message, message_input: MessageInput,
                              manager: DialogManager):
-    await message.answer('Мне кажется ваше сообщение не похоже на текст =)')
+    await message.answer('Ваше сообщение совсем не похоже на текстовое!\n'
+                         'Пожалуйста, повторите попытку.')
 
 
 async def exercise_type_handler(callback: ChatEvent, select: Any,
