@@ -16,7 +16,7 @@ main_dialog = Dialog(
             state=states.Exercises.MAIN
         ),
         Start(
-            text=Const('Начать тренировку ### IN PROGRESS'),
+            text=Const('Начать тренировку'),
             id='trains',
             state=states.Trains.MAIN
         ),

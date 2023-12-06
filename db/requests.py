@@ -1,4 +1,4 @@
-from db.models import Users, Exercises
+from db.models import Users, Exercises, Trains
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from db.models import sessionmaker
@@ -63,3 +63,9 @@ async def get_exercise_name(tg_id: int, exercise_id: int):
         exercise_name = result.scalar_one_or_none()
         return exercise_name
 
+
+async def create_train(exercise_id: int, ex_type: str, set_number: int, reps: int, weight: int, date: str):
+    async with sessionmaker() as session:
+        session.add(Trains(exercise_id=exercise_id, type=ex_type, set_number=set_number, reps=reps, weight=weight,
+                           date=date))
+        await session.commit()

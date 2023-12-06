@@ -17,4 +17,5 @@ class Trains(StatesGroup):
     MAIN = State()
     LIST = State()
     SETS = State()
-    RECORD = State()
+    RECORD_SET = State()
+    RECORD_WEIGHT = State()

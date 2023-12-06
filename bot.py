@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 async def start(message: Message, dialog_manager: DialogManager):
     if not await get_user(tg_id=message.from_user.id):
         await create_user(tg_id=message.from_user.id)
+    dialog_manager.show_mode = ShowMode.EDIT
     await dialog_manager.start(states.Main.MAIN, mode=StartMode.RESET_STACK)
 
 
