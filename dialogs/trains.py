@@ -1,6 +1,6 @@
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.widgets.kbd import (Back, Select, Start, Column, Button)
-from aiogram_dialog.widgets.text import Const, Format, Case
+from aiogram_dialog.widgets.text import Const, Format, Multi, Jinja
 from aiogram_dialog.widgets.input import MessageInput
 
 from aiogram.types import Message, CallbackQuery, ContentType
@@ -20,7 +20,7 @@ async def generate_approaches(number: int, exercises: dict | None, exercise_id: 
 
     if exercises is None:
         for i in range(1, number + 1):
-            approaches.append((f'Подход {i}', i, None, None, False))
+            approaches.append((f'Подход {i}', i, None, None))
     else:
         exercise_sets = exercises.get(exercise_id, [])
 
@@ -28,9 +28,9 @@ async def generate_approaches(number: int, exercises: dict | None, exercise_id: 
             found_set = next((set_info for set_info in exercise_sets if int(set_info['set_number']) == i), None)
 
             if found_set:
-                approaches.append((f'Подход {i}', i, found_set['reps'], found_set['weight'], True))
+                approaches.append((f'Подход {i}', i, found_set['reps'], found_set['weight']))
             else:
-                approaches.append((f'Подход {i}', i, None, None, False))
+                approaches.append((f'Подход {i}', i, None, None))
 
     return approaches
 
@@ -211,7 +211,13 @@ window_exercise_select = Window(
 window_exercise_set_select = Window(
     Format('Текущее упражнение:\n{exercise_name}'),
     Column(Select(
-        Format("{item[0]} | {item[2]}x{item[3]} кг"),
+        Jinja(
+            "{% if item[2] is not none and item[3] is not none %}"
+            "{{ item[0] }} | {{ item[2] }}x{{ item[3] }} кг"
+            "{% else %}"
+            "{{ item[0] }}"
+            "{% endif %}"
+        ),
         id='s_sets',
         item_id_getter=operator.itemgetter(1),
         items='sets',
