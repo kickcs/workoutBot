@@ -78,15 +78,28 @@ async def on_button_selected(callback: CallbackQuery, widget: Button,
     exercise_id = str(manager.current_context().dialog_data['exercise_id'])
     exercise_sets = manager.current_context().dialog_data.setdefault('exercise_sets', {})
 
-    if exercise_id not in exercise_sets:
-        exercise_sets[exercise_id] = 0
-
+    # Увеличиваем или уменьшаем количество подходов
     if widget.widget_id == 'add_set':
-        exercise_sets[exercise_id] += 1
-    elif widget.widget_id == 'delete_set' and exercise_sets[exercise_id] == 1:
-        del (exercise_sets[exercise_id])
-    else:
-        exercise_sets[exercise_id] -= 1
+        exercise_sets[exercise_id] = exercise_sets.get(exercise_id, 0) + 1
+    elif widget.widget_id == 'delete_set':
+        # Проверяем, не превышает ли текущее количество подходов номер последнего подхода
+        last_set_number = int(manager.dialog_data['exercises'][exercise_id][-1]['set_number'])
+        if (exercise_sets[exercise_id] > 1 and
+                exercise_sets[exercise_id] > last_set_number):
+            exercise_sets[exercise_id] -= 1
+        else:
+            # Удаляем последний подход из списка упражнений, если он существует
+            if exercise_id in manager.dialog_data['exercises']:
+                manager.dialog_data['exercises'][exercise_id].pop(-1)
+
+                # Если больше нет подходов, удаляем упражнение из списка
+                if not manager.dialog_data['exercises'][exercise_id]:
+                    manager.dialog_data['exercises'].pop(exercise_id)
+
+            # Уменьшаем количество подходов и удаляем ключ, если подходов не осталось
+            exercise_sets[exercise_id] -= 1
+            if exercise_sets[exercise_id] == 0:
+                exercise_sets.pop(exercise_id)
 
 
 async def on_exercise_sets_selected(callback: CallbackQuery, widget: Any,

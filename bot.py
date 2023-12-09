@@ -6,7 +6,6 @@ from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import ExceptionTypeFilter
 from aiogram.types import Message, ErrorEvent, ReplyKeyboardRemove
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.utils.callback_answer import CallbackAnswerMiddleware
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from aiogram_dialog import DialogManager, setup_dialogs, StartMode, ShowMode
