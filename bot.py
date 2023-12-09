@@ -16,7 +16,7 @@ from aiogram_dialog.api.exceptions import UnknownIntent
 from config import config
 from middlewares.db import DbSessionMiddleware
 from db.models import sessionmaker, create_tables
-from db.requests import create_user, get_user
+from db.requests import UserRepository
 from dialogs import states
 
 
@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 
 
 async def start(message: Message, dialog_manager: DialogManager):
-    if not await get_user(tg_id=message.from_user.id):
-        await create_user(tg_id=message.from_user.id)
+    if not await UserRepository.get_user(tg_id=message.from_user.id):
+        await UserRepository.create_user(tg_id=message.from_user.id)
     await dialog_manager.start(states.Main.MAIN, mode=StartMode.RESET_STACK,
                                show_mode=ShowMode.EDIT)
 

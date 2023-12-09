@@ -1,6 +1,6 @@
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.widgets.kbd import (Back, Select, Start, Column, Button)
-from aiogram_dialog.widgets.text import Const, Format, Multi, Jinja
+from aiogram_dialog.widgets.text import Const, Format, Jinja
 from aiogram_dialog.widgets.input import MessageInput
 
 from aiogram.types import Message, CallbackQuery, ContentType
@@ -10,8 +10,7 @@ from datetime import datetime
 import operator
 
 from . import states
-from db.requests import (get_exercise_types, get_exercises_by_type, get_exercise_name,
-                         create_train)
+from db.requests import ExerciseRepository, TrainRepository
 
 
 async def generate_approaches(number: int, exercises: dict | None, exercise_id: str):
@@ -36,7 +35,9 @@ async def generate_approaches(number: int, exercises: dict | None, exercise_id: 
 
 
 async def exercise_types_getter(dialog_manager: DialogManager, **_kwargs):
-    exercise_types = await get_exercise_types(tg_id=dialog_manager.event.from_user.id)
+    exercise_types = await ExerciseRepository.get_exercise_types(tg_id=dialog_manager.event.from_user.id)
+    if dialog_manager.dialog_data.get('exercises'):
+        return {'exercise_type': exercise_types, 'end_train': True}
     return {'exercise_type': exercise_types}
 
 
@@ -47,8 +48,9 @@ async def on_exercise_type_selected(callback: CallbackQuery, widget: Any,
 
 
 async def exercise_by_type_getter(dialog_manager: DialogManager, **_kwargs):
-    exercises = await get_exercises_by_type(tg_id=dialog_manager.event.from_user.id,
-                                            exercise_type=dialog_manager.dialog_data['exercise_type'])
+    exercises = await ExerciseRepository.get_exercises_by_type(tg_id=dialog_manager.event.from_user.id,
+                                                               exercise_type=dialog_manager.dialog_data[
+                                                                   'exercise_type'])
     return {'exercises': exercises, }
 
 
@@ -60,8 +62,8 @@ async def on_exercise_selected(callback: CallbackQuery, widget: Any,
 
 async def exercise_set_getter(dialog_manager: DialogManager, **_kwargs):
     exercise_id = dialog_manager.dialog_data['exercise_id']
-    exercise_name = await get_exercise_name(tg_id=dialog_manager.event.from_user.id,
-                                            exercise_id=exercise_id)
+    exercise_name = await ExerciseRepository.get_exercise_name(tg_id=dialog_manager.event.from_user.id,
+                                                               exercise_id=exercise_id)
     exercise_sets = dialog_manager.current_context().dialog_data.get('exercise_sets', {})
 
     sets_count = exercise_sets.get(dialog_manager.dialog_data['exercise_id'], 0)
@@ -81,7 +83,9 @@ async def on_button_selected(callback: CallbackQuery, widget: Button,
 
     if widget.widget_id == 'add_set':
         exercise_sets[exercise_id] += 1
-    elif widget.widget_id == 'delete_set' and exercise_sets[exercise_id] > 0:
+    elif widget.widget_id == 'delete_set' and exercise_sets[exercise_id] == 1:
+        del (exercise_sets[exercise_id])
+    else:
         exercise_sets[exercise_id] -= 1
 
 
@@ -111,8 +115,8 @@ async def on_exercise_sets_selected(callback: CallbackQuery, widget: Any,
 
 
 async def exercise_name_getter(dialog_manager: DialogManager, **_kwargs):
-    exercise_name = await get_exercise_name(tg_id=dialog_manager.event.from_user.id,
-                                            exercise_id=dialog_manager.dialog_data['exercise_id'])
+    exercise_name = await ExerciseRepository.get_exercise_name(tg_id=dialog_manager.event.from_user.id,
+                                                               exercise_id=dialog_manager.dialog_data['exercise_id'])
     return {'exercise_name': exercise_name}
 
 
@@ -163,7 +167,7 @@ async def end_trains(callback: CallbackQuery, widget: Button,
     data = manager.dialog_data['exercises']
     for exercise_id, sets in data.items():
         for set_info in sets:
-            await create_train(
+            await TrainRepository.create_train(
                 exercise_id=exercise_id,
                 ex_type='normal',
                 set_number=set_info['set_number'],
@@ -187,7 +191,10 @@ window_type_select = Window(
         items='exercise_type',
         on_click=on_exercise_type_selected,
     )),
-    Button(text=Const('Закончить тренировку'), id='finish', on_click=end_trains),
+    Button(text=Const('Закончить тренировку'),
+           id='finish',
+           on_click=end_trains,
+           when=F['end_train']),
     Start(text=Const('Назад'), id="__main__", state=states.Main.MAIN),
     state=states.Trains.MAIN,
     getter=exercise_types_getter
@@ -224,7 +231,10 @@ window_exercise_set_select = Window(
         on_click=on_exercise_sets_selected
     )),
     Button(Const('Добавить подход'), id='add_set', on_click=on_button_selected),
-    Button(Const('Удалить подход'), id='delete_set', on_click=on_button_selected),
+    Button(text=Const('Удалить подход'),
+           id='delete_set',
+           on_click=on_button_selected,
+           when=F['dialog_data']['exercise_sets']),
     Back(text=Const('Назад')),
     state=states.Trains.SETS,
     getter=exercise_set_getter

@@ -1,8 +1,21 @@
-from aiogram_dialog import Dialog, Window, LaunchMode
-from aiogram_dialog.widgets.kbd import Start, Button
+from aiogram_dialog import Dialog, Window, LaunchMode, DialogManager
+from aiogram_dialog.widgets.kbd import Start
 from aiogram_dialog.widgets.text import Const
+from aiogram import F
+
+
+from db.requests import ExerciseRepository
 
 from . import states
+
+
+async def getter(dialog_manager: DialogManager, **_kwargs):
+    tg_id = dialog_manager.middleware_data['event_from_user'].id
+    exercises = await ExerciseRepository.get_available_exercises(tg_id=tg_id)
+    if exercises:
+        return {'trains': True}
+    return {'trains': False}
+
 
 main_dialog = Dialog(
     Window(
@@ -22,9 +35,10 @@ main_dialog = Dialog(
         Start(
             text=Const('Начать тренировку'),
             id='trains',
-            state=states.Trains.MAIN
-        ),
-        state=states.Main.MAIN
+            state=states.Trains.MAIN,
+            when=F['trains']),
+        state=states.Main.MAIN,
+        getter=getter
     ),
     launch_mode=LaunchMode.ROOT
 )

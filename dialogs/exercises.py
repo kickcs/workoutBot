@@ -9,7 +9,7 @@ from aiogram.types import ContentType, Message, CallbackQuery
 from typing import Any
 
 from . import states
-from db.requests import add_exercise, list_exercises, delete_exercise
+from db.requests import ExerciseRepository
 
 
 async def name_handler(message: Message, message_input: MessageInput,
@@ -30,14 +30,14 @@ async def other_type_handler(message: Message, message_input: MessageInput,
 async def exercise_type_handler(callback: ChatEvent, select: Any,
                                 manager: DialogManager, item_id: str):
     manager.dialog_data['exercise_type'] = item_id
-    await add_exercise(tg_id=manager.event.from_user.id,
-                       name=manager.dialog_data['exercise_name'],
-                       exercise_type=manager.dialog_data['exercise_type'])
+    await ExerciseRepository.add_exercise(tg_id=manager.event.from_user.id,
+                                          name=manager.dialog_data['exercise_name'],
+                                          exercise_type=manager.dialog_data['exercise_type'])
     await manager.switch_to(state=states.Exercises.MAIN)
 
 
 async def getter(dialog_manager: DialogManager, **_kwargs):
-    exercises = await list_exercises(tg_id=dialog_manager.event.from_user.id)
+    exercises = await ExerciseRepository.list_exercises(tg_id=dialog_manager.event.from_user.id)
     return {'exercises': exercises}
 
 
@@ -48,7 +48,8 @@ async def on_exercise_selected(callback: CallbackQuery, widget: Any,
 
 async def on_edited_exercise_selected(callback: CallbackQuery, widget: Any,
                                       manager: DialogManager, selected_item: int):
-    await delete_exercise(tg_id=manager.event.from_user.id, exercise_id=selected_item)
+    await ExerciseRepository.delete_exercise(tg_id=manager.event.from_user.id,
+                                             exercise_id=selected_item)
 
 
 HEADER = Const('######')
@@ -97,7 +98,9 @@ list_exercises_window = Window(
 )
 
 edit_exercise_window = Window(
-    Const('Выберите упражнение, которое хотите удалить из списка'),
+    Const("Выберите упражнение, которое хотите удалить из списка\n\n"
+          "Внимание! При удалении какого-либо упражнения весь"
+          "связанный с ним прогресс аннулируется!"),
     ScrollingGroup(Select(
         Format("{item.name} | ({item.type})"),
         id="s_exercises",
