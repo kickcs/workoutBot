@@ -21,3 +21,7 @@ class Trains(StatesGroup):
     SETS = State()
     RECORD_SET = State()
     RECORD_WEIGHT = State()
+
+
+class Profile(StatesGroup):
+    MAIN = State()

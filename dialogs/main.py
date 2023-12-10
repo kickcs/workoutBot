@@ -33,6 +33,12 @@ main_dialog = Dialog(
             state=states.Exercises.MAIN
         ),
         Start(
+            text=Const('Профиль'),
+            id='profile',
+            state=states.Profile.MAIN,
+            when=F['trains']
+        ),
+        Start(
             text=Const('Начать тренировку'),
             id='trains',
             state=states.Trains.MAIN,

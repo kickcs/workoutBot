@@ -83,4 +83,13 @@ class TrainRepository:
                                date=date))
             await session.commit()
 
+    @staticmethod
+    async def get_trains_by_id(train_id: int):
+        async with sessionmaker() as session:
+            result = await session.execute(
+                select(Trains)
+                .where(Trains.exercise_id == int(train_id))
+            )
+            trains = result.scalars().all()
+            return trains
 

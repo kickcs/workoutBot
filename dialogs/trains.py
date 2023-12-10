@@ -8,9 +8,11 @@ from aiogram import F
 from typing import Any
 from datetime import datetime
 import operator
+import locale
 
 from . import states
 from db.requests import ExerciseRepository, TrainRepository
+
 
 
 async def generate_approaches(number: int, exercises: dict | None, exercise_id: str):
@@ -69,8 +71,16 @@ async def exercise_set_getter(dialog_manager: DialogManager, **_kwargs):
     sets_count = exercise_sets.get(dialog_manager.dialog_data['exercise_id'], 0)
     sets = await generate_approaches(sets_count, dialog_manager.dialog_data.get('exercises'),
                                      exercise_id)
-    print(dialog_manager.dialog_data)
-    return {'exercise_name': exercise_name, 'sets': sets}
+
+    previous_sets = await TrainRepository.get_trains_by_id(train_id=exercise_id)
+
+    # Оставляем только записи для трех последних дат
+
+    unique_dates = set()
+    unique_dates = set(train.date for train in previous_sets)
+
+    return {'exercise_name': exercise_name, 'sets': sets, 'previous_sets': previous_sets,
+            'unique_dates': unique_dates}
 
 
 async def on_button_selected(callback: CallbackQuery, widget: Button,
@@ -229,7 +239,22 @@ window_exercise_select = Window(
 
 # endregion
 window_exercise_set_select = Window(
-    Format('Текущее упражнение:\n{exercise_name}'),
+    Jinja('''
+<b>Текущее упражнение:</b> {{ exercise_name }}\n
+{% if previous_sets %}
+<b>Прошлые тренировки:</b>
+{% for date in unique_dates %}
+\n<b>Дата:</b> {{ date.strftime('%A, %d-%m-%Y') }}
+{% for train_set in previous_sets %}
+{% if train_set.date == date %}
+{{ train_set.set_number }}: {{ train_set.reps }}х{{ train_set.weight }} кг
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% else %}
+<i>Информация о прошлых тренировках отсутствует.</i>
+{% endif %}
+'''),
     Column(Select(
         Jinja(
             "{% if item[2] is not none and item[3] is not none %}"
@@ -241,7 +266,7 @@ window_exercise_set_select = Window(
         id='s_sets',
         item_id_getter=operator.itemgetter(1),
         items='sets',
-        on_click=on_exercise_sets_selected
+        on_click=on_exercise_sets_selected,
     )),
     Button(Const('Добавить подход'), id='add_set', on_click=on_button_selected),
     Button(text=Const('Удалить подход'),
@@ -249,6 +274,7 @@ window_exercise_set_select = Window(
            on_click=on_button_selected,
            when=F['dialog_data']['exercise_sets']),
     Back(text=Const('Назад')),
+    parse_mode='HTML',
     state=states.Trains.SETS,
     getter=exercise_set_getter
 )
