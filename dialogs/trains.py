@@ -5,14 +5,13 @@ from aiogram_dialog.widgets.input import MessageInput
 
 from aiogram.types import Message, CallbackQuery, ContentType
 from aiogram import F
+import asyncio
 from typing import Any
 from datetime import datetime
 import operator
-import locale
 
 from . import states
 from db.requests import ExerciseRepository, TrainRepository
-
 
 
 async def generate_approaches(number: int, exercises: dict | None, exercise_id: str):
@@ -83,33 +82,40 @@ async def exercise_set_getter(dialog_manager: DialogManager, **_kwargs):
             'unique_dates': unique_dates}
 
 
-async def on_button_selected(callback: CallbackQuery, widget: Button,
-                             manager: DialogManager):
+async def on_button_selected(callback: CallbackQuery, widget: Button, manager: DialogManager):
     exercise_id = str(manager.current_context().dialog_data['exercise_id'])
     exercise_sets = manager.current_context().dialog_data.setdefault('exercise_sets', {})
 
-    # Увеличиваем или уменьшаем количество подходов
+    # Инициализация словаря 'exercises', если он не существует
+    if 'exercises' not in manager.dialog_data:
+        manager.dialog_data['exercises'] = {}
+
+    # Получаем список подходов для текущего упражнения
+    current_exercise = manager.dialog_data['exercises'].get(exercise_id, [])
+
+    # Изменяем количество подходов в зависимости от выбранной кнопки
     if widget.widget_id == 'add_set':
         exercise_sets[exercise_id] = exercise_sets.get(exercise_id, 0) + 1
     elif widget.widget_id == 'delete_set':
-        # Проверяем, не превышает ли текущее количество подходов номер последнего подхода
-        last_set_number = int(manager.dialog_data['exercises'][exercise_id][-1]['set_number'])
-        if (exercise_sets[exercise_id] > 1 and
-                exercise_sets[exercise_id] > last_set_number):
-            exercise_sets[exercise_id] -= 1
-        else:
-            # Удаляем последний подход из списка упражнений, если он существует
-            if exercise_id in manager.dialog_data['exercises']:
-                manager.dialog_data['exercises'][exercise_id].pop(-1)
+        # Проверяем, есть ли информация о последнем подходе
+        if len(current_exercise) < exercise_sets.get(exercise_id, 0):
+            # Уменьшаем количество подходов, так как последний подход не имеет деталей
+            exercise_sets[exercise_id] = max(0, exercise_sets.get(exercise_id, 0) - 1)
+        elif current_exercise:
+            # Удаляем детали последнего подхода
+            current_exercise.pop(-1)
 
-                # Если больше нет подходов, удаляем упражнение из списка
-                if not manager.dialog_data['exercises'][exercise_id]:
-                    manager.dialog_data['exercises'].pop(exercise_id)
+        # Если больше нет подходов, удаляем упражнение из списка
+        if not current_exercise and exercise_sets.get(exercise_id, 0) == 0:
+            manager.dialog_data['exercises'].pop(exercise_id, None)
 
-            # Уменьшаем количество подходов и удаляем ключ, если подходов не осталось
-            exercise_sets[exercise_id] -= 1
-            if exercise_sets[exercise_id] == 0:
-                exercise_sets.pop(exercise_id)
+    # Обновляем списки подходов и упражнений в dialog_data
+    if current_exercise:
+        manager.dialog_data['exercises'][exercise_id] = current_exercise
+    elif exercise_id in manager.dialog_data['exercises']:
+        manager.dialog_data['exercises'].pop(exercise_id)
+
+    manager.current_context().dialog_data['exercise_sets'] = exercise_sets
 
 
 async def on_exercise_sets_selected(callback: CallbackQuery, widget: Any,
@@ -132,8 +138,6 @@ async def on_exercise_sets_selected(callback: CallbackQuery, widget: Any,
         # Добавляем информацию о новом подходе в список для соответствующего exercise_id
         manager.dialog_data['exercises'][exercise_id].append(new_set)
 
-    # Выводим обновленную структуру данных для проверки
-    print(manager.current_context().dialog_data)
     await manager.next()
 
 
@@ -181,23 +185,32 @@ async def count_weight_set(message: Message, message_input: MessageInput,
 
 async def other_type_handler(message: Message, message_input: MessageInput,
                              manager: DialogManager):
-    await message.answer('Вы ввели некорректное значение. Пожалуйста, попробуйте ещё раз\n'
-                         'Ваш ответ должен состоять только из целых чисел!')
+    await message.answer('⚠️ Вы ввели некорректное значение. Пожалуйста, попробуйте ещё раз.\n'
+                         '🔢 Ваш ответ должен состоять только из целых чисел!')
 
 
-async def end_trains(callback: CallbackQuery, widget: Button,
-                     manager: DialogManager):
+async def end_trains(callback: CallbackQuery, widget: Button, manager: DialogManager):
     data = manager.dialog_data['exercises']
+    tasks = []
+
     for exercise_id, sets in data.items():
         for set_info in sets:
-            await TrainRepository.create_train(
-                exercise_id=exercise_id,
-                ex_type='normal',
-                set_number=set_info['set_number'],
-                reps=set_info['reps'],
-                weight=set_info['weight'],
-                date=datetime.now().strftime('%Y-%m-%d')
-            )
+            # Проверяем, что значения reps и weight не равны None
+            if set_info['reps'] is not None and set_info['weight'] is not None:
+                # Создаем асинхронную задачу для каждого вызова create_train
+                task = TrainRepository.create_train(
+                    exercise_id=exercise_id,
+                    ex_type='normal',
+                    set_number=set_info['set_number'],
+                    reps=set_info['reps'],
+                    weight=set_info['weight'],
+                    date=datetime.now().strftime('%Y-%m-%d')
+                )
+                tasks.append(task)
+
+    # Выполняем все задачи асинхронно
+    if tasks:
+        await asyncio.gather(*tasks)
 
     await callback.answer(text='Вы успешно завершили тренировку')
     await manager.done()
@@ -206,7 +219,9 @@ async def end_trains(callback: CallbackQuery, widget: Button,
 
 # region first_windows
 window_type_select = Window(
-    Const('Выберите нужную группу упражнений'),
+    Const('👋 <b>Выбор группы мышц</b>\n\n'
+          'Для начала выберите группу мышц, для которой вы хотите подобрать упражнения:\n\n'
+          'После выбора группы мышц, я покажу вам список подходящих упражнений. '),
     Column(Select(
         Format("{item}"),
         id='exercise_type',
@@ -224,7 +239,8 @@ window_type_select = Window(
 )
 
 window_exercise_select = Window(
-    Const('Выберите нужное вам упражнение'),
+    Const('🏋️ <b>Выбор Упражнения </b>\n\n'
+          'Выберите упражнение из списка ниже.'),
     Column(Select(
         Format("{item.name}"),
         id='s_exercises',
@@ -240,19 +256,19 @@ window_exercise_select = Window(
 # endregion
 window_exercise_set_select = Window(
     Jinja('''
-<b>Текущее упражнение:</b> {{ exercise_name }}\n
+<b>🏋️ Текущее упражнение:</b> {{ exercise_name }}\n
 {% if previous_sets %}
-<b>Прошлые тренировки:</b>
+<b>📅 Прошлые тренировки:</b>
 {% for date in unique_dates %}
-\n<b>Дата:</b> {{ date.strftime('%A, %d-%m-%Y') }}
+\n<b>🗓️ Дата:</b> {{ date.strftime('%A, %d-%m-%Y') }}
 {% for train_set in previous_sets %}
 {% if train_set.date == date %}
-{{ train_set.set_number }}: {{ train_set.reps }}х{{ train_set.weight }} кг
+   - {{ train_set.set_number }}: {{ train_set.reps }}х{{ train_set.weight }} кг
 {% endif %}
 {% endfor %}
 {% endfor %}
 {% else %}
-<i>Информация о прошлых тренировках отсутствует.</i>
+<i>🚫 Информация о прошлых тренировках отсутствует.</i>
 {% endif %}
 '''),
     Column(Select(

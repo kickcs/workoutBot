@@ -25,3 +25,7 @@ class Trains(StatesGroup):
 
 class Profile(StatesGroup):
     MAIN = State()
+    TRAINS = State()
+    TRAINS_INFO = State()
+    EXERCISES = State()
+    EXERCISES_INFO = State()

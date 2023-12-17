@@ -1,6 +1,8 @@
 from db.models import Users, Exercises, Trains
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, join, func
 from db.models import sessionmaker
+from datetime import datetime
+
 
 # Класс для работы с пользователями
 class UserRepository:
@@ -15,6 +17,7 @@ class UserRepository:
         async with sessionmaker() as session:
             result = await session.execute(select(Users).where(Users.tg_id == tg_id))
             return result.scalar_one_or_none()
+
 
 # Класс для работы с упражнениями
 class ExerciseRepository:
@@ -74,6 +77,7 @@ class ExerciseRepository:
             exercises = result.first()
             return exercises is not None
 
+
 # Класс для работы с тренировками
 class TrainRepository:
     @staticmethod
@@ -93,3 +97,39 @@ class TrainRepository:
             trains = result.scalars().all()
             return trains
 
+
+class ProfileRepository:
+    @staticmethod
+    async def get_date_trains_profile(tg_id: int):
+        async with sessionmaker() as session:
+            result = await session.execute(
+                select(Trains.date)
+                .join(Exercises, Exercises.id == Trains.exercise_id)
+                .where(Exercises.user_id == tg_id)
+                .distinct(Trains.date)
+                .order_by(Trains.date.desc())
+            )
+            train_data = result.all()
+        return train_data
+
+    @staticmethod
+    async def get_train_profile(tg_id: int, date: str):
+        async with sessionmaker() as session:
+            specific_date_obj = datetime.strptime(date, "%Y-%m-%d").date()
+
+            result = await session.execute(
+                select(
+                    Trains.date,
+                    Trains.set_number,
+                    Trains.reps,
+                    Trains.weight,
+                    Exercises.name
+                )
+                .join(Exercises, Trains.exercise_id == Exercises.id)
+                .where(
+                    (Exercises.user_id == tg_id) &
+                    (Trains.date == specific_date_obj)
+                )
+            )
+            trains = result.all()
+            return trains

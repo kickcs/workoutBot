@@ -22,7 +22,6 @@ from dialogs.exercises import exercises_dialog
 from dialogs.trains import trains_dialog
 from dialogs.information import info_dialog
 from dialogs.profile import profile_dialog
-import locale
 
 logger = logging.getLogger(__name__)
 
