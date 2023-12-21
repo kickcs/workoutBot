@@ -296,8 +296,8 @@ window_exercise_set_select = Window(
 )
 
 window_exercise_set_reps_input = Window(
-    Format('Текущее упражнение:\n{exercise_name}\n'),
-    Const('Введите количество сделанных повторений:'),
+    Format('🏋️ Текущее упражнение:\n{exercise_name}\n'),
+    Const('🔢 Введите количество сделанных повторений:'),
     MessageInput(count_reps_set, content_types=[ContentType.TEXT], filter=F.text.isdigit()),
     MessageInput(other_type_handler),
     Back(text=Const('Назад')),
@@ -306,8 +306,8 @@ window_exercise_set_reps_input = Window(
 )
 
 window_exercise_set_weight_input = Window(
-    Format('Текущее упражнение:\n{exercise_name}\n'),
-    Const('Введите вес, который вы использовали в данном подходе:'),
+    Format('🏋️ Текущее упражнение:\n{exercise_name}\n'
+           '⚖️ Введите вес, который вы использовали в данном подходе:'),
     MessageInput(count_weight_set, content_types=[ContentType.TEXT], filter=F.text.isdigit()),
     MessageInput(other_type_handler),
     Back(text=Const('Назад')),
