@@ -116,6 +116,10 @@ edit_exercise_window = Window(
     getter=getter,
 )
 
+# default_exercises_window = Window(
+#     Const('Перед вами список упражнений, которые будут добавлены в ваш план тренировок.'),
+# )
+
 exercises_dialog = Dialog(
     main_window,
     list_exercises_window,
