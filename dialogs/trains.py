@@ -6,7 +6,8 @@ from aiogram_dialog.widgets.input import MessageInput
 from aiogram.types import Message, CallbackQuery, ContentType
 from aiogram import F
 import asyncio
-from typing import Any
+from typing import Any, Dict
+from collections import OrderedDict
 from datetime import datetime
 import operator
 
@@ -61,25 +62,48 @@ async def on_exercise_selected(callback: CallbackQuery, widget: Any,
     await manager.next()
 
 
-async def exercise_set_getter(dialog_manager: DialogManager, **_kwargs):
+async def exercise_set_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str, Any]:
+    # Получение ID упражнения из данных диалога
     exercise_id = dialog_manager.dialog_data['exercise_id']
-    exercise_name = await ExerciseRepository.get_exercise_name(tg_id=dialog_manager.event.from_user.id,
-                                                               exercise_id=exercise_id)
+
+    # Получение названия упражнения
+    exercise_name = await ExerciseRepository.get_exercise_name(
+        tg_id=dialog_manager.event.from_user.id,
+        exercise_id=exercise_id
+    )
+
+    # Получение количества подходов для упражнения
     exercise_sets = dialog_manager.current_context().dialog_data.get('exercise_sets', {})
+    sets_count = exercise_sets.get(exercise_id, 0)
 
-    sets_count = exercise_sets.get(dialog_manager.dialog_data['exercise_id'], 0)
-    sets = await generate_approaches(sets_count, dialog_manager.dialog_data.get('exercises'),
-                                     exercise_id)
+    # Генерация информации о подходах
+    sets = await generate_approaches(
+        sets_count,
+        dialog_manager.dialog_data.get('exercises'),
+        exercise_id
+    )
 
+    # Получение информации о предыдущих тренировках
     previous_sets = await TrainRepository.get_trains_by_id(train_id=exercise_id)
 
-    # Оставляем только записи для трех последних дат
+    # Сортировка previous_sets по дате в порядке убывания
+    previous_sets_sorted = sorted(previous_sets, key=lambda x: x.date, reverse=True)
 
-    unique_dates = set()
-    unique_dates = set(train.date for train in previous_sets)
+    # Извлечение трех последних уникальных дат
+    unique_dates_ordered = OrderedDict()
+    for train in previous_sets_sorted:
+        if len(unique_dates_ordered) < 3:
+            unique_dates_ordered[train.date] = True
 
-    return {'exercise_name': exercise_name, 'sets': sets, 'previous_sets': previous_sets,
-            'unique_dates': unique_dates}
+    unique_dates = list(unique_dates_ordered.keys())
+
+    # Возвращение собранной информации
+    return {
+        'exercise_name': exercise_name,
+        'sets': sets,
+        'previous_sets': previous_sets,
+        'unique_dates': unique_dates
+    }
 
 
 async def on_button_selected(callback: CallbackQuery, widget: Button, manager: DialogManager):
@@ -258,14 +282,15 @@ window_exercise_set_select = Window(
     Jinja('''
 <b>🏋️ Текущее упражнение:</b> {{ exercise_name }}\n
 {% if previous_sets %}
-<b>📅 Прошлые тренировки:</b>
-{% for date in unique_dates %}
-\n<b>🗓️ Дата:</b> {{ date.strftime('%A, %d-%m-%Y') }}
-{% for train_set in previous_sets %}
-{% if train_set.date == date %}
-   - {{ train_set.set_number }}: {{ train_set.reps }}х{{ train_set.weight }} кг
-{% endif %}
+<b>📅 Прошлые тренировки:</b>\n
+{% for date in unique_dates -%}
+<b>🗓️ Дата:</b> {{ date.strftime('%d-%m-%Y - %A') }}
+<blockquote>{% for train_set in previous_sets -%}
+{% if train_set.date == date -%}
+   - Подход {{ train_set.set_number }}: {{ train_set.reps }}х{{ train_set.weight }} кг
+{% endif -%}
 {% endfor %}
+</blockquote>
 {% endfor %}
 {% else %}
 <i>🚫 Информация о прошлых тренировках отсутствует.</i>

@@ -77,6 +77,14 @@ class ExerciseRepository:
             exercises = result.first()
             return exercises is not None
 
+    @staticmethod
+    async def add_default_exercises(tg_id: int, workout_plan: dict):
+        async with sessionmaker() as session:
+            for muscle_group, exercises in workout_plan.items():
+                for exercise_name in exercises:
+                    session.add(Exercises(user_id=tg_id, name=exercise_name, type=muscle_group))
+            await session.commit()
+
 
 # Класс для работы с тренировками
 class TrainRepository:

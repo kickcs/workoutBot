@@ -1,6 +1,7 @@
 import asyncio
 # from asyncio import WindowsSelectorEventLoopPolicy
 import logging
+import locale
 
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import ExceptionTypeFilter
@@ -55,6 +56,7 @@ async def on_unknown_intent(event: ErrorEvent, dialog_manager: DialogManager):
 
 
 async def main():
+    locale.setlocale(locale.LC_ALL, 'ru_RU.UTF-8')
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
@@ -88,5 +90,5 @@ async def main():
 
 
 if __name__ == "__main__":
-    #asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
+    # asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
     asyncio.run(main())

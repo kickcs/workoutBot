@@ -1,8 +1,7 @@
 from aiogram_dialog import Dialog, Window, DialogManager
-from aiogram_dialog.widgets.kbd import Start, Back, Select, Column, SwitchTo, ScrollingGroup
-from aiogram_dialog.widgets.text import Const, Format, Jinja
-from aiogram.types import Message, CallbackQuery, ContentType
-from aiogram import F
+from aiogram_dialog.widgets.kbd import Start, Back, Select, SwitchTo, ScrollingGroup
+from aiogram_dialog.widgets.text import Const, Jinja
+from aiogram.types import CallbackQuery
 
 from db.requests import ProfileRepository
 import operator
@@ -50,7 +49,7 @@ main_profile_window = Window(
 trains_profile_window = Window(
     Const('📅 <b>Даты ваших тренировок:</b>\n'),
     ScrollingGroup(Select(
-        Jinja("{{ item.date.strftime('%A, %d-%m-%Y') | capitalize }}"),
+        Jinja("{{ item.date.strftime('%d-%m-%Y - %A') | capitalize }}"),
         id='date',
         item_id_getter=operator.itemgetter(0),
         items='trains',
@@ -65,9 +64,9 @@ trains_data_profile_window = Window(
     Jinja("""
 {% for exercise, details in grouped_trains.items() %}
 🔹 <b>{{ exercise }}</b>
-{% for train in details %}
+<blockquote>{% for train in details %}
    - Подход {{ train.set_number }}: {{ train.reps }}x{{ train.weight }} кг
-{% endfor %}\n
+{% endfor %}</blockquote>
 {% endfor %}
     """),
     Back(Const('Назад')),

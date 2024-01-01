@@ -13,6 +13,7 @@ class Exercises(StatesGroup):
     ADD_TYPE = State()
     EDIT = State()
     LIST = State()
+    DEFAULT_EXERCISE = State()
 
 
 class Trains(StatesGroup):
