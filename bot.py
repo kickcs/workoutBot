@@ -1,7 +1,8 @@
 import asyncio
-# from asyncio import WindowsSelectorEventLoopPolicy
+from asyncio import WindowsSelectorEventLoopPolicy
 import logging
 import locale
+import sys
 
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import ExceptionTypeFilter
@@ -90,5 +91,6 @@ async def main():
 
 
 if __name__ == "__main__":
-    # asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(main())
