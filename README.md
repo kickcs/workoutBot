@@ -2,6 +2,7 @@
 
 ## Description
 The Training Bot is a Telegram bot designed to assist in planning and tracking workouts. It allows users to create personalized training plans, choose exercises based on muscle groups, log reps and weight, and track workout progress.
+Link: [WORKING VERSION](https://t.me/Workout_Wizard_bot)
 
 ## Features
 - Creation of customized workout plans.
