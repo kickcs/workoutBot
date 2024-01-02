@@ -24,7 +24,7 @@ The Training Bot is a Telegram bot designed to assist in planning and tracking w
 The bot is developed using [aiogram](https://github.com/aiogram/aiogram) in Python.
 
 ## Contact
-If you have any questions or suggestions, feel free to contact me via [Telegram](@tobehard).
+If you have any questions or suggestions, feel free to contact me via [Telegram]([@tobehard](https://t.me/tobehard)).
 
 ---
 
