@@ -1,29 +1,26 @@
 import asyncio
-from asyncio import WindowsSelectorEventLoopPolicy
-import logging
 import locale
+import logging
 import sys
 
 from aiogram import Bot, Dispatcher, Router, F
-from aiogram.filters import ExceptionTypeFilter
-from aiogram.types import Message, ErrorEvent, ReplyKeyboardRemove
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.filters import ExceptionTypeFilter
 from aiogram.fsm.storage.memory import MemoryStorage
-
+from aiogram.types import Message, ErrorEvent, ReplyKeyboardRemove
 from aiogram_dialog import DialogManager, setup_dialogs, StartMode, ShowMode
 from aiogram_dialog.api.exceptions import UnknownIntent
 
 from config import config
-from middlewares.db import DbSessionMiddleware
 from db.models import sessionmaker, create_tables
 from db.requests import UserRepository
 from dialogs import states
-
-from dialogs.main import main_dialog
 from dialogs.exercises import exercises_dialog
-from dialogs.trains import trains_dialog
 from dialogs.information import info_dialog
+from dialogs.main import main_dialog
 from dialogs.profile import profile_dialog
+from dialogs.trains import trains_dialog
+from middlewares.db import DbSessionMiddleware
 
 logger = logging.getLogger(__name__)
 
