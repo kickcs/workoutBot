@@ -87,7 +87,7 @@ async def exercise_set_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[
     previous_sets = await TrainRepository.get_trains_by_id(train_id=exercise_id)
 
     # Сортировка previous_sets по дате в порядке убывания
-    previous_sets_sorted = sorted(previous_sets, key=lambda x: x.date, reverse=True)
+    previous_sets_sorted = sorted(previous_sets, key=lambda x: (x.date, x.set_number))
 
     # Извлечение трех последних уникальных дат
     unique_dates_ordered = OrderedDict()

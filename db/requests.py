@@ -101,6 +101,7 @@ class TrainRepository:
             result = await session.execute(
                 select(Trains)
                 .where(Trains.exercise_id == int(train_id))
+                .order_by(Trains.date, Trains.set_number)  # Добавление сортировки по дате и номеру подхода
             )
             trains = result.scalars().all()
             return trains

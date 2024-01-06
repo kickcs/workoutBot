@@ -11,10 +11,18 @@ from collections import defaultdict
 
 
 async def group_trains_by_exercise(trains):
-    grouped_trains = defaultdict(list)
+    grouped = {}
     for train in trains:
-        grouped_trains[train.name].append(train)
-    return grouped_trains
+        # Использование индекса 4 для доступа к имени упражнения (Exercises.name)
+        key = train[4]
+        if key not in grouped:
+            grouped[key] = []
+        # Добавление всего кортежа или создание нового объекта, если необходимо
+        grouped[key].append(train)
+    # Опционально: сортировка подходов в каждой группе по set_number (индекс 1)
+    for key in grouped:
+        grouped[key] = sorted(grouped[key], key=lambda x: x[1])
+    return grouped
 
 
 async def profile_trains_getter(dialog_manager: DialogManager, **_kwargs):
